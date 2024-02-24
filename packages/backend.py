@@ -1,6 +1,6 @@
 from packages import app
 from flask_cors import cross_origin
-from flask import request
+from flask import request, jsonify
 import os
 import json
 import pandas as pd
@@ -12,6 +12,9 @@ PANDAS_DB = None
 
 
 def parse_json():
+    image_item_id = {
+        'minecraft:redstone': '01.png'
+    }
     with open(ROOT_DIR + DATABASE_DIR + JSON_NAME) as f:
         data = json.load(f)
     items = data["Items"]
@@ -62,7 +65,5 @@ def items():
     init_pandas()
     if request.method == 'GET':
         grouped_data = PANDAS_DB.groupby("item_id")["count"].sum().reset_index()
-
-# Convert the grouped data to a dictionary
-result_dict = grouped_data.to_dict(orient="records")
-    return 'test'
+        result_dict = grouped_data.to_dict(orient="records")
+        return jsonify(result_dict)
