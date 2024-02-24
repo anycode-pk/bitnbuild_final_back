@@ -1,0 +1,18 @@
+{
+    "Items": [
+        {
+            "Count": 64,
+            "Slot": 0,
+            "id": "minecraft:redstone"
+        },
+        {
+            "Count": 63,
+            "Slot": 1,
+            "id": "minecraft:redstone"
+        }
+    ],
+    "id": "minecraft:chest",
+    "x": -39,
+    "y": -60,
+    "z": 17
+}

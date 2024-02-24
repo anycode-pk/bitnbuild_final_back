@@ -1,0 +1,34 @@
+{
+    "Items": [
+        {
+            "Count": 3,
+            "Slot": 0,
+            "id": "minecraft:redstone"
+        },
+        {
+            "Count": 9,
+            "Slot": 2,
+            "id": "minecraft:tipped_arrow",
+            "tag": {
+                "Potion": "minecraft:mundane"
+            }
+        },
+        {
+            "Count": 1,
+            "Slot": 17,
+            "id": "minecraft:dispenser"
+        },
+        {
+            "Count": 1,
+            "Slot": 19,
+            "id": "minecraft:wooden_hoe",
+            "tag": {
+                "Damage": 7
+            }
+        }
+    ],
+    "id": "minecraft:chest",
+    "x": -38,
+    "y": -60,
+    "z": 17
+}
