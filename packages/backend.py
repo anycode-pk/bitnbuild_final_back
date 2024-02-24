@@ -1,97 +1,68 @@
 from packages import app
-from flask import request, g, jsonify
 from flask_cors import cross_origin
-import markdown.extensions.fenced_code
-from pygments.formatters import HtmlFormatter
+from flask import request
 import os
-import sqlite3
-from dateutil import parser
-import random
-import time
+import json
+import pandas as pd
 
 DATABASE_DIR = 'databases/'
-DATABASE_NAME = 'app.db'
-DATABASE_SCHEMA = 'app.sql'
+JSON_NAME = 'items.json'
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).replace("packages", "")
+PANDAS_DB = None
 
 
-def get_db() -> sqlite3.Connection:
-    """
-    Retrieves the SQLite database connection.
+def parse_json():
+    with open(ROOT_DIR + DATABASE_DIR + JSON_NAME) as f:
+        data = json.load(f)
+    items = data["Items"]
+    chest_id = data["id"]
+    x = data["x"]
+    y = data["y"]
+    z = data["z"]
 
-    Returns:
-        sqlite3.Connection: A connection object to the SQLite database.
+    # Create a list to hold the extracted data
+    extracted_data = []
 
-    Raises:
-        sqlite3.Error: If there is an issue connecting to the database.
-
-    Usage:
-        Use this function to obtain a connection to the SQLite database for executing queries.
-    """
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(
-            f'{ROOT_DIR}{DATABASE_DIR}{DATABASE_NAME}')
-    return db
-
-
-def get_cursor() -> sqlite3.Cursor:
-    """
-    Retrieves a cursor object connected to the database.
-
-    Returns:
-        sqlite3.Cursor: A cursor object linked to the database.
-
-    Raises:
-        RuntimeError: If the application context is not available.
-        sqlite3.Error: If there is an issue connecting to the database or creating a cursor.
-
-    Usage:
-        Use this function to obtain a cursor for executing SQL queries on the database.
-    """
-    return get_db().cursor()
+    # Iterate through the items and extract relevant information
+    for item in items:
+        count = item["Count"]
+        slot = item["Slot"]
+        item_id = item["id"]
+        tag = item.get("tag", None)
+        tag_potion = None
+        if tag:
+            tag_potion = tag.get("Potion", None)
+            tag_damage = tag.get("Damage", None)
+        else:
+            tag_damage = None
+        extracted_data.append((x, y, z, count, slot, item_id, tag_potion, tag_damage, chest_id))
+    return extracted_data
 
 
-def init_db():
-    """
-    Initializes the database by running the SQL schema script if the database is empty or if changes were made to ksiazki.sql.
-
-    Note:
-        This function should be run only when necessary, such as when the database is empty or when changes have been made to the database schema.
-
-    Raises:
-        RuntimeError: If the application context is not available.
-        sqlite3.Error: If there is an issue executing the SQL script or committing the changes to the database.
-
-    Usage:
-        Call this function to ensure the database is set up with the latest schema.
-    """
-    with app.app_context():
-        db = get_db()
-        with app.open_resource(f'{ROOT_DIR}{DATABASE_DIR}{DATABASE_SCHEMA}', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
+def init_pandas():
+    global PANDAS_DB
+    if PANDAS_DB is None:
+        extracted_data = parse_json()
+        PANDAS_DB = pd.DataFrame(extracted_data, columns=["x", "y", "z", "count", "slot", "item_id", "tag_potion", "tag_damage", "chest_id"])
+    if PANDAS_DB is None:
+        raise Exception('No File to parse. Put it in databases/ folder as items.json')
+    print(PANDAS_DB.to_string())
 
 
 @app.route('/')
 @cross_origin()
 def index():
+    init_pandas()
     return 'test'
 
 
+@app.route('/items', methods=['GET'])
+@cross_origin()
+def items():
+    init_pandas()
+    if request.method == 'GET':
+        grouped_data = PANDAS_DB.groupby("item_id")["count"].sum().reset_index()
 
-@app.teardown_appcontext
-def close_connection(exception):
-    """
-    Closes the database connection when the application context is torn down.
-
-    Args:
-        exception (Exception): An exception that might have occurred during the application context tear down.
-
-    Usage:
-        This function is automatically called by Flask when the application context is torn down.
-        It ensures that the database connection is properly closed to prevent resource leaks.
-    """
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+# Convert the grouped data to a dictionary
+result_dict = grouped_data.to_dict(orient="records")
+    return 'test'
