@@ -6,6 +6,7 @@ import json
 import pandas as pd
 
 DATABASE_DIR = 'databases/'
+IMAGES_DIR = 'images/'
 JSON_NAME = 'items.json'
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).replace("packages", "")
 PANDAS_DB = None
@@ -31,6 +32,8 @@ def parse_json():
         count = item["Count"]
         slot = item["Slot"]
         item_id = item["id"]
+        item_name = item["id"].replace("minecraft:", "").replace("_", " ").title()
+        item_image = image_item_id.get(item_id, None)
         tag = item.get("tag", None)
         tag_potion = None
         if tag:
@@ -38,7 +41,7 @@ def parse_json():
             tag_damage = tag.get("Damage", None)
         else:
             tag_damage = None
-        extracted_data.append((x, y, z, count, slot, item_id, tag_potion, tag_damage, chest_id))
+        extracted_data.append((x, y, z, count, slot, item_id, item_name, item_image, tag_potion, tag_damage, chest_id))
     return extracted_data
 
 
@@ -46,7 +49,7 @@ def init_pandas():
     global PANDAS_DB
     if PANDAS_DB is None:
         extracted_data = parse_json()
-        PANDAS_DB = pd.DataFrame(extracted_data, columns=["x", "y", "z", "count", "slot", "item_id", "tag_potion", "tag_damage", "chest_id"])
+        PANDAS_DB = pd.DataFrame(extracted_data, columns=["x", "y", "z", "count", "slot", "item_id", "item_name", "item_image", "tag_potion", "tag_damage", "chest_id"])
     if PANDAS_DB is None:
         raise Exception('No File to parse. Put it in databases/ folder as items.json')
     print(PANDAS_DB.to_string())
@@ -66,4 +69,13 @@ def items():
     if request.method == 'GET':
         grouped_data = PANDAS_DB.groupby("item_id")["count"].sum().reset_index()
         result_dict = grouped_data.to_dict(orient="records")
+        return jsonify(result_dict)
+
+
+@app.route('/all', methods=['GET'])
+@cross_origin()
+def all_data():
+    init_pandas()
+    if request.method == 'GET':
+        result_dict = PANDAS_DB.to_dict(orient="records")
         return jsonify(result_dict)
